@@ -1,0 +1,81 @@
+#!/bin/bash
+set -vex
+# Define the source and deploy directories
+SRC_DIR="./src"
+DEPLOY_DIR="./deploy"
+TMP_DIR="$DEPLOY_DIR/tmp"
+
+npm i
+
+# Copy the schema.prisma and the .so.node file to the deploy directory if not already copied
+cp "prisma/schema.prisma" "$DEPLOY_DIR"
+cp "node_modules/.prisma/client/libquery_engine-rhel-openssl-3.0.x.so.node" "$DEPLOY_DIR"
+
+# Function to process a single file
+process_file() {
+  entry=$1
+  base_name=$(basename "$entry" .js)
+  zip_file="$DEPLOY_DIR/$base_name.zip"
+
+  # Skip processing if the .zip file already exists
+  if [ -f "$zip_file" ]; then
+    echo "Skipping $base_name, $zip_file already exists."
+    return
+  fi
+
+  echo "Full path of the file being processed: $entry"
+  relative_path=${entry#"$SRC_DIR/"}
+  echo "Relative path passed to Webpack: $relative_path"
+
+  echo "Bundling $relative_path using Webpack..."
+  webpack --config webpack.config.js --env entry=$relative_path
+
+  if [ ! -f "$DEPLOY_DIR/$base_name.js" ]; then
+    echo "Bundled file for $base_name not found, skipping."
+    return
+  fi
+
+  mkdir -p "$TMP_DIR"
+  mv "$DEPLOY_DIR/$base_name.js" "$TMP_DIR"
+  cp "$DEPLOY_DIR/schema.prisma" "$TMP_DIR"
+  cp "$DEPLOY_DIR/libquery_engine-rhel-openssl-3.0.x.so.node" "$TMP_DIR"
+
+  mkdir -p "$TMP_DIR/node_modules/@prisma"
+  cp -r node_modules/@prisma/client "$TMP_DIR/node_modules/@prisma/client"
+  cp -r node_modules/.prisma "$TMP_DIR/node_modules/.prisma"
+
+  mkdir -p "$TMP_DIR/node_modules"
+  cp -r node_modules/uuid "$TMP_DIR/node_modules/uuid"
+
+  # Copy all required node modules
+  modules=("date-fns" "whatwg-url" "node-fetch" "@smithy" "tslib" "fast-xml-parser" "strnum" "follow-redirects" "form-data" "proxy-from-env" "combined-stream" "delayed-stream" "mime-types" "mime-db" "asynckit" "@aws-crypto" "jsonwebtoken" "jws" "safe-buffer" "jwa" "buffer-equal-constant-time" "ecdsa-sig-formatter" "ms" "lodash" "lodash.includes" "lodash.isboolean" "lodash.isinteger" "lodash.isnumber" "lodash.isplainobject" "lodash.once" "lodash.isstring" "jwks-rsa" "debug" "jose" "lru-memoizer" "lodash.clonedeep" "limiter" "json2csv" "@streamparser/json" "@aws-sdk/client-cognito-identity-provider" "decimal.js" "streamsearch" "lodash.get" "qs" "side-channel" "get-intrinsic" "es-errors" "has-symbols" "has-proto" "function-bind" "hasown" "call-bind" "set-function-length" "define-data-property" "es-define-property" "gopd" "has-property-descriptors" "object-inspect")
+
+  for module in "${modules[@]}"; do
+    if [ -d "node_modules/$module" ]; then
+      mkdir -p "$TMP_DIR/node_modules/$module"
+      cp -r node_modules/$module/* "$TMP_DIR/node_modules/$module/"
+    else
+      echo "$module module not found in node_modules, ensure it's installed."
+    fi
+  done
+
+  echo "Zipping contents for $base_name..."
+  (cd "$TMP_DIR" && zip -r "../$base_name.zip" ./*)
+
+  rm -rf "$TMP_DIR"
+}
+
+# Process either all files in src or a specific file passed as an argument
+if [ $# -eq 0 ]; then
+  for entry in $(find "$SRC_DIR" -name "*.js"); do
+    process_file "$entry"
+  done
+else
+  process_file "$1"
+fi
+
+# Clean up remaining .js and .txt files in the deploy directory
+rm -rf deploy/*.js # Do not modify
+rm -rf deploy/*.txt # Do not modify
+
+echo "Build and packaging completed."

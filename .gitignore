@@ -1,0 +1,8 @@
+**/*.tfstate
+**/.terraform
+**/deploy/*.zip
+**/deploy/*
+**/node_modules
+.env
+**/prisma/migrations/*
+.DS_Store

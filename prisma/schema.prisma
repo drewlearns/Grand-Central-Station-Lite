@@ -1,0 +1,237 @@
+
+// datasource db {
+//   provider = "postgresql"
+//   url      = env("DATABASE_URL")
+// }
+
+// generator client {
+//   provider = "prisma-client-js"
+// }
+
+// model User {
+//   uuid                String    @id @default(uuid())
+//   firstName           String
+//   lastName            String
+//   email               String    @unique
+//   signupDate          DateTime
+//   mailOptIn           Boolean
+//   defaultHouseholdId  String?
+//   createdAt           DateTime
+//   updatedAt           DateTime
+//   confirmedEmail      Boolean
+//   subscriptionEndDate DateTime?
+//   subscriptionId      String?
+//   subscriptionStatus  String?
+//   purchaseToken       String?
+//   receiptData         Json?
+//   emailSent           Boolean   @default(false)
+
+//   // Relations
+//   householdMembers        HouseholdMembers[]
+//   invitations             Invitations[]
+//   notifications           Notification[]
+//   unverifiedSubscriptions UnverifiedSubscription[]
+// }
+
+// model UnverifiedSubscription {
+//   id                   String   @id @default(cuid())
+//   platform             String
+//   platformIdentifier   String
+//   transactionId        String?
+//   purchaseDate         DateTime
+//   subscriptionEndDate  DateTime?
+//   receiptData          String
+//   notificationType     String
+//   createdAt            DateTime @default(now())
+//   updatedAt            DateTime @updatedAt
+//   userUuid             String?
+//   User                 User?    @relation(fields: [userUuid], references: [uuid])
+// }
+
+// model Household {
+//   householdId        String   @id @default(uuid())
+//   householdName      String
+//   creationDate       DateTime
+//   createdAt          DateTime
+//   updatedAt          DateTime
+//   setupComplete      Boolean
+//   activeSubscription Boolean
+
+//   // Relations
+//   members        HouseholdMembers[]
+//   incomes        Incomes[]
+//   bills          Bill[]
+//   preferences    Preferences[]
+//   invitations    Invitations[]
+//   ledgers        Ledger[]
+//   paymentSources PaymentSource[]
+// }
+
+// model HouseholdMembers {
+//   id          String   @id @default(uuid())
+//   householdId String
+//   memberUuid  String
+//   role        String
+//   joinedDate  DateTime
+//   createdAt   DateTime
+//   updatedAt   DateTime
+
+//   // Relations
+//   household Household @relation(fields: [householdId], references: [householdId])
+//   member    User      @relation(fields: [memberUuid], references: [uuid])
+// }
+
+// model Incomes {
+//   incomeId    String   @id @default(uuid())
+//   householdId String
+//   name        String
+//   amount      Decimal @db.Decimal(10,2)
+//   frequency   String
+//   firstPayDay DateTime  // Add this line
+//   startDate   DateTime
+//   endDate     DateTime
+//   createdAt   DateTime
+//   updatedAt   DateTime
+
+//   // Relations
+//   household Household @relation(fields: [householdId], references: [householdId])
+//   ledgers   Ledger[]
+// }
+
+
+// model Ledger {
+//   ledgerId        String   @id @default(uuid())
+//   householdId     String
+//   paymentSourceId String
+//   amount          Decimal @db.Decimal(10, 2)
+//   transactionType String
+//   transactionDate DateTime
+//   category        String
+//   description     String
+//   status          Boolean
+//   createdAt       DateTime
+//   updatedAt       DateTime
+//   updatedBy       String?
+//   billId          String?
+//   incomeId        String?
+//   runningTotal    Float?
+//   tags            String?
+//   isInitial       Boolean  @default(false)
+
+//   // Relations
+//   household     Household     @relation(fields: [householdId], references: [householdId])
+//   paymentSource PaymentSource @relation(fields: [paymentSourceId], references: [sourceId])
+//   bill          Bill?         @relation(fields: [billId], references: [billId])
+//   income        Incomes?      @relation(fields: [incomeId], references: [incomeId])
+//   attachments   Attachments[]
+//   transactions  Transaction[]
+// }
+
+// model Bill {
+//   billId       String   @id @default(uuid())
+//   householdId  String
+//   category     String
+//   billName     String
+//   amount       Decimal @db.Decimal(10, 2)
+//   startDate    DateTime
+//   endDate      DateTime?
+//   frequency    String
+//   description  String
+//   status       Boolean
+//   url          String?
+//   username     String?
+//   password     String?
+//   createdAt    DateTime
+//   updatedAt    DateTime
+
+//   // Relations
+//   household     Household      @relation(fields: [householdId], references: [householdId])
+//   notifications Notification[]
+//   ledgers       Ledger[]
+// }
+
+// model Preferences {
+//   preferenceId    String   @id @default(uuid())
+//   householdId     String
+//   preferenceType  String
+//   preferenceValue String
+//   createdAt       DateTime
+//   updatedAt       DateTime
+
+//   // Relations
+//   household Household @relation(fields: [householdId], references: [householdId])
+// }
+
+// model Invitations {
+//   invitationId     String   @id @default(uuid())
+//   householdId      String
+//   invitedUserUuid  String?
+//   invitedUserEmail String
+//   invitationStatus String
+//   sentDate         DateTime
+//   createdAt        DateTime
+//   updatedAt        DateTime
+
+//   // Relations
+//   household   Household @relation(fields: [householdId], references: [householdId])
+//   invitedUser User?     @relation(fields: [invitedUserUuid], references: [uuid])
+// }
+
+// model Attachments {
+//   attachmentId String   @id @default(uuid())
+//   ledgerId     String
+//   fileType     String
+//   filePath     String
+//   uploadDate   DateTime
+//   createdAt    DateTime
+//   updatedAt    DateTime
+
+//   // Relations
+//   ledger Ledger @relation(fields: [ledgerId], references: [ledgerId])
+// }
+
+// model Notification {
+//   notificationId String   @id @default(uuid())
+//   userUuid       String
+//   billId         String?
+//   title          String
+//   message        String
+//   read           Boolean
+//   createdAt      DateTime
+//   updatedAt      DateTime
+//   dueDate        DateTime
+
+//   // Relations
+//   user User  @relation(fields: [userUuid], references: [uuid])
+//   bill Bill? @relation(fields: [billId], references: [billId])
+// }
+
+// model PaymentSource {
+//   sourceId    String   @id @default(uuid())
+//   householdId String
+//   sourceName  String
+//   sourceType  String
+//   description String
+//   createdAt   DateTime
+//   updatedAt   DateTime
+
+//   // Relations
+//   household    Household     @relation(fields: [householdId], references: [householdId])
+//   ledgers      Ledger[]
+//   transactions Transaction[]
+// }
+
+// model Transaction {
+//   transactionId   String   @id @default(uuid())
+//   ledgerId        String
+//   sourceId        String
+//   amount          Decimal @db.Decimal(10, 2)
+//   transactionDate DateTime
+//   description     String
+//   createdAt       DateTime
+//   updatedAt       DateTime
+
+//   // Relations
+//   ledger        Ledger        @relation(fields: [ledgerId], references: [ledgerId])
+//   paymentSource PaymentSource @relation(fields: [sourceId], references: [sourceId])
+// }
